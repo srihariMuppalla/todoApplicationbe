@@ -30,7 +30,7 @@ initializeDBAndServer();
 const convertData = (data) => {
   return {
     id: data.id,
-    todo: data.status,
+    todo: data.todo,
     category: data.category,
     priority: data.priority,
     status: data.status,
@@ -41,6 +41,18 @@ const convertData = (data) => {
 const hasPriorityAndStatusProperties = (requestQuery) => {
   return (
     requestQuery.priority !== undefined && requestQuery.status !== undefined
+  );
+};
+
+const hasCategoryAndStatusProperties = (requestQuery) => {
+  return (
+    requestQuery.category !== undefined && requestQuery.status !== undefined
+  );
+};
+
+const hasCategoryAndPriorityProperties = (requestQuery) => {
+  return (
+    requestQuery.category !== undefined && requestQuery.priority !== undefined
   );
 };
 
@@ -110,14 +122,67 @@ app.get("/todos/", async (request, response) => {
         response.send("Invalid Todo Status");
       }
       break;
-    case requestQuery.priority !== undefined:
+    case requestQuery.search_q !== undefined:
       getTodosQuery = `
             SELECT
             *
             FROM
             todo
             WHERE
-            priority = "${requestQuery.priority}";
+            todo LIKE "%${requestQuery.search_q}%";
+            `;
+      data = await database.all(getTodosQuery);
+      if (data.length > 0) {
+        response.send(data.map((each) => convertData(each)));
+      } else {
+        response.status(400);
+        response.send("Invalid Todo Priority");
+      }
+      break;
+    case hasCategoryAndStatusProperties(requestQuery):
+      getTodosQuery = `
+            SELECT
+            *
+            FROM
+            todo
+            WHERE
+            category = "${requestQuery.category}"
+            AND status = "${requestQuery.status}";
+            `;
+      data = await database.all(getTodosQuery);
+      if (data.length > 0) {
+        response.send(data.map((each) => convertData(each)));
+      } else {
+        response.status(400);
+        response.send("Invalid Todo Status");
+      }
+      break;
+    case requestQuery.category !== undefined:
+      getTodosQuery = `
+            SELECT
+            *
+            FROM
+            todo
+            WHERE
+            category = "${requestQuery.category}";
+            `;
+      data = await database.all(getTodosQuery);
+      if (data.length > 0) {
+        response.send(data.map((each) => convertData(each)));
+      } else {
+        response.status(400);
+        response.send("Invalid Todo Category");
+      }
+      break;
+    case hasCategoryAndPriorityProperties(requestQuery):
+      getTodosQuery = `
+            SELECT
+            *
+            FROM
+            todo
+            WHERE
+            category = "${requestQuery.category}"
+            AND priority = "${requestQuery.priority}";
             `;
       data = await database.all(getTodosQuery);
       if (data.length > 0) {
